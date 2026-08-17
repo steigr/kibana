@@ -16,6 +16,7 @@ import { LoggingSystem } from '@kbn/core-logging-server-internal';
 import apm from 'elastic-apm-node';
 import { isEqual } from 'lodash';
 import { setDiagLogger } from '@kbn/telemetry';
+import { consoleHardeningApplied } from '@kbn/security-hardening';
 import type { ElasticConfigType } from './elastic_config';
 import { Server } from '../server';
 import { MIGRATION_EXCEPTION_CODE } from '../constants';
@@ -49,6 +50,12 @@ export class Root {
       this.setupApmLabelSync();
 
       await this.setupLogging();
+
+      if (consoleHardeningApplied) {
+        this.log.info(
+          'Native global console methods have been overridden in production environment.'
+        );
+      }
 
       this.log.debug('prebooting root');
       return await this.server.preboot();

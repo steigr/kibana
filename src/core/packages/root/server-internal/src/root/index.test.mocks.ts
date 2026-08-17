@@ -33,3 +33,6 @@ export const mockServer = {
   configService,
 };
 jest.mock('../server', () => ({ Server: jest.fn(() => mockServer) }));
+
+export const securityHardening = { consoleHardeningApplied: false };
+jest.doMock('@kbn/security-hardening', () => securityHardening);

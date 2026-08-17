@@ -7,11 +7,28 @@
  * License v3.0 only", or the "Server Side Public License, v 1".
  */
 
-import { MAIN_SAVED_OBJECT_INDEX } from '@kbn/core-saved-objects-server';
+import {
+  MAIN_SAVED_OBJECT_INDEX,
+  applySavedObjectIndexSuffix,
+} from '@kbn/core-saved-objects-server';
 import type { SavedObjectTypeRegistry } from '@kbn/core-saved-objects-base-server-internal';
 
-export const getAllIndices = ({ registry }: { registry: SavedObjectTypeRegistry }): string[] => {
+export const getAllIndices = ({
+  registry,
+  defaultIndex = MAIN_SAVED_OBJECT_INDEX,
+}: {
+  registry: SavedObjectTypeRegistry;
+  defaultIndex?: string;
+}): string[] => {
   return [
-    ...new Set(registry.getAllTypes().map((type) => type.indexPattern ?? MAIN_SAVED_OBJECT_INDEX)),
+    ...new Set(
+      registry
+        .getAllTypes()
+        .map((type) =>
+          type.indexPattern
+            ? applySavedObjectIndexSuffix(type.indexPattern, defaultIndex)
+            : defaultIndex
+        )
+    ),
   ];
 };

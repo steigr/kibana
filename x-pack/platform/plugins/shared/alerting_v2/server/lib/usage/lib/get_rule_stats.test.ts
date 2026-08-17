@@ -6,6 +6,7 @@
  */
 
 import { elasticsearchServiceMock } from '@kbn/core/server/mocks';
+import { ALERTING_CASES_SAVED_OBJECT_INDEX } from '@kbn/core-saved-objects-server';
 import { getRuleStats } from './get_rule_stats';
 
 const elasticsearch = elasticsearchServiceMock.createStart();
@@ -94,7 +95,7 @@ describe('getRuleStats', () => {
   it('returns stats from aggregations', async () => {
     mockRuleSearchResponse({});
 
-    const result = await getRuleStats(esClient);
+    const result = await getRuleStats(esClient, ALERTING_CASES_SAVED_OBJECT_INDEX);
 
     expect(result).toEqual({
       count_total: 20,
@@ -139,7 +140,7 @@ describe('getRuleStats', () => {
       noDataStrategyBuckets: [],
     });
 
-    const result = await getRuleStats(esClient);
+    const result = await getRuleStats(esClient, ALERTING_CASES_SAVED_OBJECT_INDEX);
 
     expect(result).toEqual({
       count_total: 0,
@@ -169,7 +170,7 @@ describe('getRuleStats', () => {
       hits: { total: { value: 0, relation: 'eq' }, max_score: null, hits: [] },
     } as any);
 
-    const result = await getRuleStats(esClient);
+    const result = await getRuleStats(esClient, ALERTING_CASES_SAVED_OBJECT_INDEX);
 
     expect(result).toEqual({
       count_total: 0,
@@ -216,7 +217,7 @@ describe('getRuleStats', () => {
       },
     } as any);
 
-    const result = await getRuleStats(esClient);
+    const result = await getRuleStats(esClient, ALERTING_CASES_SAVED_OBJECT_INDEX);
 
     expect(result.count_total).toBe(3);
   });

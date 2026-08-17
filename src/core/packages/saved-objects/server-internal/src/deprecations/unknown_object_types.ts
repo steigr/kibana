@@ -12,6 +12,7 @@ import type { DeprecationsDetails } from '@kbn/core-deprecations-common';
 import type { IScopedClusterClient } from '@kbn/core-elasticsearch-server';
 import {
   ALL_SAVED_OBJECT_INDICES,
+  applySavedObjectIndexSuffix,
   type ISavedObjectTypeRegistry,
 } from '@kbn/core-saved-objects-server';
 import {
@@ -23,6 +24,8 @@ interface UnknownTypesDeprecationOptions {
   typeRegistry: ISavedObjectTypeRegistry;
   esClient: IScopedClusterClient;
   kibanaVersion: string;
+  /** The resolved default saved object index (`kibana.index` suffix applied, defaults to `.kibana`). */
+  defaultIndex: string;
 }
 
 const getKnownTypes = (typeRegistry: ISavedObjectTypeRegistry) =>
@@ -41,17 +44,26 @@ const getKnownTypes = (typeRegistry: ISavedObjectTypeRegistry) =>
  * Note: some of these version-aliased indices may not exist (e.g. if a plugin was never
  * loaded), so callers should use `ignore_unavailable: true` in their ES requests.
  */
-const getTargetIndices = ({ kibanaVersion }: { kibanaVersion: string }) => {
-  return ALL_SAVED_OBJECT_INDICES.map((index) => `${index}_${kibanaVersion}`);
+const getTargetIndices = ({
+  kibanaVersion,
+  defaultIndex,
+}: {
+  kibanaVersion: string;
+  defaultIndex: string;
+}) => {
+  return ALL_SAVED_OBJECT_INDICES.map(
+    (index) => `${applySavedObjectIndexSuffix(index, defaultIndex)}_${kibanaVersion}`
+  );
 };
 
 const getUnknownSavedObjects = async ({
   typeRegistry,
   esClient,
   kibanaVersion,
+  defaultIndex,
 }: UnknownTypesDeprecationOptions) => {
   const knownTypes = getKnownTypes(typeRegistry);
-  const targetIndices = getTargetIndices({ kibanaVersion });
+  const targetIndices = getTargetIndices({ kibanaVersion, defaultIndex });
   const excludeRegisteredTypes = addExcludedTypesToBoolQuery(knownTypes);
   return await getAggregatedTypesDocuments(
     esClient.asInternalUser,
@@ -108,15 +120,18 @@ interface DeleteUnknownTypesOptions {
   typeRegistry: ISavedObjectTypeRegistry;
   esClient: IScopedClusterClient;
   kibanaVersion: string;
+  /** The resolved default saved object index (`kibana.index` suffix applied, defaults to `.kibana`). */
+  defaultIndex: string;
 }
 
 export const deleteUnknownTypeObjects = async ({
   esClient,
   typeRegistry,
   kibanaVersion,
+  defaultIndex,
 }: DeleteUnknownTypesOptions) => {
   const knownTypes = getKnownTypes(typeRegistry);
-  const targetIndices = getTargetIndices({ kibanaVersion });
+  const targetIndices = getTargetIndices({ kibanaVersion, defaultIndex });
   const nonRegisteredTypesQuery = addExcludedTypesToBoolQuery(knownTypes);
 
   await esClient.asInternalUser.deleteByQuery({

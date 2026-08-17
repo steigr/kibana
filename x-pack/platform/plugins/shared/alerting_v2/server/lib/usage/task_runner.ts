@@ -5,7 +5,12 @@
  * 2.0.
  */
 
-import type { ElasticsearchClient } from '@kbn/core/server';
+import type { ElasticsearchClient, SavedObjectsServiceStart } from '@kbn/core/server';
+import {
+  ALERTING_CASES_SAVED_OBJECT_INDEX,
+  applySavedObjectIndexSuffix,
+} from '@kbn/core-saved-objects-server';
+import { CoreStart } from '@kbn/core-di-server';
 import type { RunContext, RunResult } from '@kbn/task-manager-plugin/server/task';
 import { inject, injectable } from 'inversify';
 import { EsServiceInternalToken } from '../services/es_service/tokens';
@@ -27,17 +32,23 @@ type TaskRunParams = Pick<RunContext, 'taskInstance' | 'abortController'>;
 export class TelemetryTaskRunner implements AlertingTaskRunner {
   constructor(
     @inject(LoggerServiceToken) private readonly logger: LoggerServiceContract,
-    @inject(EsServiceInternalToken) private readonly esClient: ElasticsearchClient
+    @inject(EsServiceInternalToken) private readonly esClient: ElasticsearchClient,
+    @inject(CoreStart('savedObjects')) private readonly savedObjects: SavedObjectsServiceStart
   ) {}
 
   public async run({ taskInstance }: TaskRunParams): Promise<RunResult> {
     const state = taskInstance.state as LatestTaskStateSchema;
 
     try {
+      // Honor a custom `kibana.index` suffix for the alerting saved object index.
+      const alertingIndex = applySavedObjectIndexSuffix(
+        ALERTING_CASES_SAVED_OBJECT_INDEX,
+        this.savedObjects.getDefaultIndex()
+      );
       const [stats, executionStats, actionPolicyStats, alertStats] = await Promise.all([
-        getRuleStats(this.esClient),
+        getRuleStats(this.esClient, alertingIndex),
         getExecutionStats(this.esClient),
-        getActionPolicyStats(this.esClient),
+        getActionPolicyStats(this.esClient, alertingIndex),
         getAlertStats(this.esClient),
       ]);
 

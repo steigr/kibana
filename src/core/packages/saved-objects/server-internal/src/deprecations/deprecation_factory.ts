@@ -16,6 +16,8 @@ interface GetDeprecationProviderOptions {
   typeRegistry: ISavedObjectTypeRegistry;
   savedObjectsConfig: SavedObjectConfig;
   kibanaVersion: string;
+  /** The configured saved object index prefix (`kibana.index`, defaults to `.kibana`). */
+  defaultIndex: string;
 }
 
 export const getSavedObjectsDeprecationsProvider = (

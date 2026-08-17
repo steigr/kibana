@@ -117,7 +117,12 @@ describe('partiallyUpdateRuleWithEs', () => {
   test('should work with no options', async () => {
     esClient.update.mockResolvedValueOnce(MockEsUpdateResponse(MockRuleId));
 
-    await partiallyUpdateRuleWithEs(esClient, MockRuleId, DefaultAttributesForEsUpdate);
+    await partiallyUpdateRuleWithEs(
+      esClient,
+      ALERTING_CASES_SAVED_OBJECT_INDEX,
+      MockRuleId,
+      DefaultAttributesForEsUpdate
+    );
     expect(esClient.update).toHaveBeenCalledTimes(1);
     expect(esClient.update).toHaveBeenCalledWith({
       id: `alert:${MockRuleId}`,
@@ -133,7 +138,12 @@ describe('partiallyUpdateRuleWithEs', () => {
       AttributesForEsUpdateWithUnallowedFields as unknown as PartiallyUpdateableRuleAttributes;
     esClient.update.mockResolvedValueOnce(MockEsUpdateResponse(MockRuleId));
 
-    await partiallyUpdateRuleWithEs(esClient, MockRuleId, attributes);
+    await partiallyUpdateRuleWithEs(
+      esClient,
+      ALERTING_CASES_SAVED_OBJECT_INDEX,
+      MockRuleId,
+      attributes
+    );
     expect(esClient.update).toHaveBeenCalledWith({
       id: `alert:${MockRuleId}`,
       index: ALERTING_CASES_SAVED_OBJECT_INDEX,
@@ -147,16 +157,27 @@ describe('partiallyUpdateRuleWithEs', () => {
     esClient.update.mockRejectedValueOnce(new Error('wops'));
 
     await expect(
-      partiallyUpdateRuleWithEs(esClient, MockRuleId, DefaultAttributes)
+      partiallyUpdateRuleWithEs(
+        esClient,
+        ALERTING_CASES_SAVED_OBJECT_INDEX,
+        MockRuleId,
+        DefaultAttributes
+      )
     ).rejects.toThrowError('wops');
   });
 
   test('should handle the version option', async () => {
     esClient.update.mockResolvedValueOnce(MockEsUpdateResponse(MockRuleId));
 
-    await partiallyUpdateRuleWithEs(esClient, MockRuleId, DefaultAttributesForEsUpdate, {
-      version: 'WzQsMV0=',
-    });
+    await partiallyUpdateRuleWithEs(
+      esClient,
+      ALERTING_CASES_SAVED_OBJECT_INDEX,
+      MockRuleId,
+      DefaultAttributesForEsUpdate,
+      {
+        version: 'WzQsMV0=',
+      }
+    );
     expect(esClient.update).toHaveBeenCalledWith({
       id: `alert:${MockRuleId}`,
       index: ALERTING_CASES_SAVED_OBJECT_INDEX,
@@ -171,9 +192,15 @@ describe('partiallyUpdateRuleWithEs', () => {
   test('should handle the ignore404 option', async () => {
     esClient.update.mockResolvedValueOnce(MockEsUpdateResponse(MockRuleId));
 
-    await partiallyUpdateRuleWithEs(esClient, MockRuleId, DefaultAttributesForEsUpdate, {
-      ignore404: true,
-    });
+    await partiallyUpdateRuleWithEs(
+      esClient,
+      ALERTING_CASES_SAVED_OBJECT_INDEX,
+      MockRuleId,
+      DefaultAttributesForEsUpdate,
+      {
+        ignore404: true,
+      }
+    );
     expect(esClient.update).toHaveBeenCalledWith(
       {
         id: `alert:${MockRuleId}`,
@@ -189,9 +216,15 @@ describe('partiallyUpdateRuleWithEs', () => {
   test('should handle the refresh option', async () => {
     esClient.update.mockResolvedValueOnce(MockEsUpdateResponse(MockRuleId));
 
-    await partiallyUpdateRuleWithEs(esClient, MockRuleId, DefaultAttributesForEsUpdate, {
-      refresh: 'wait_for',
-    });
+    await partiallyUpdateRuleWithEs(
+      esClient,
+      ALERTING_CASES_SAVED_OBJECT_INDEX,
+      MockRuleId,
+      DefaultAttributesForEsUpdate,
+      {
+        refresh: 'wait_for',
+      }
+    );
     expect(esClient.update).toHaveBeenCalledWith({
       id: `alert:${MockRuleId}`,
       index: ALERTING_CASES_SAVED_OBJECT_INDEX,
@@ -217,7 +250,12 @@ describe('atomicRemoveSnoozedInstancesWithEs', () => {
       { instanceId: 'alert-2', snoozedAt: '2024-01-02T00:00:00.000Z' },
     ];
 
-    await atomicRemoveSnoozedInstancesWithEs(esClient, MockRuleId, expiredInstances);
+    await atomicRemoveSnoozedInstancesWithEs(
+      esClient,
+      ALERTING_CASES_SAVED_OBJECT_INDEX,
+      MockRuleId,
+      expiredInstances
+    );
 
     expect(esClient.update).toHaveBeenCalledTimes(1);
     expect(esClient.update).toHaveBeenCalledWith(
@@ -243,6 +281,7 @@ describe('atomicRemoveSnoozedInstancesWithEs', () => {
 
     await atomicRemoveSnoozedInstancesWithEs(
       esClient,
+      ALERTING_CASES_SAVED_OBJECT_INDEX,
       MockRuleId,
       [{ instanceId: 'alert-1', snoozedAt: '2024-01-01T00:00:00.000Z' }],
       { ignore404: true }
@@ -259,6 +298,7 @@ describe('atomicRemoveSnoozedInstancesWithEs', () => {
 
     await atomicRemoveSnoozedInstancesWithEs(
       esClient,
+      ALERTING_CASES_SAVED_OBJECT_INDEX,
       MockRuleId,
       [{ instanceId: 'alert-1', snoozedAt: '2024-01-01T00:00:00.000Z' }],
       { refresh: 'wait_for' }
@@ -270,9 +310,12 @@ describe('atomicRemoveSnoozedInstancesWithEs', () => {
   test('should not include refresh when the option is not set', async () => {
     esClient.update.mockResolvedValueOnce(MockEsUpdateResponse(MockRuleId));
 
-    await atomicRemoveSnoozedInstancesWithEs(esClient, MockRuleId, [
-      { instanceId: 'alert-1', snoozedAt: '2024-01-01T00:00:00.000Z' },
-    ]);
+    await atomicRemoveSnoozedInstancesWithEs(
+      esClient,
+      ALERTING_CASES_SAVED_OBJECT_INDEX,
+      MockRuleId,
+      [{ instanceId: 'alert-1', snoozedAt: '2024-01-01T00:00:00.000Z' }]
+    );
 
     const [callArgs] = esClient.update.mock.calls[0];
     expect(callArgs).not.toHaveProperty('refresh');
@@ -281,7 +324,12 @@ describe('atomicRemoveSnoozedInstancesWithEs', () => {
   test('should work with an empty expired array (idempotent noop)', async () => {
     esClient.update.mockResolvedValueOnce(MockEsUpdateResponse(MockRuleId));
 
-    await atomicRemoveSnoozedInstancesWithEs(esClient, MockRuleId, []);
+    await atomicRemoveSnoozedInstancesWithEs(
+      esClient,
+      ALERTING_CASES_SAVED_OBJECT_INDEX,
+      MockRuleId,
+      []
+    );
 
     expect(esClient.update).toHaveBeenCalledTimes(1);
     expect(esClient.update).toHaveBeenCalledWith(
@@ -297,7 +345,7 @@ describe('atomicRemoveSnoozedInstancesWithEs', () => {
     esClient.update.mockRejectedValueOnce(new Error('es error'));
 
     await expect(
-      atomicRemoveSnoozedInstancesWithEs(esClient, MockRuleId, [
+      atomicRemoveSnoozedInstancesWithEs(esClient, ALERTING_CASES_SAVED_OBJECT_INDEX, MockRuleId, [
         { instanceId: 'alert-1', snoozedAt: '2024-01-01T00:00:00.000Z' },
       ])
     ).rejects.toThrowError('es error');
@@ -312,9 +360,12 @@ describe('atomicRemoveSnoozedInstancesWithEs', () => {
 
     esClient.update.mockResolvedValueOnce(MockEsUpdateResponse(MockRuleId));
 
-    await atomicRemoveSnoozedInstancesWithEs(esClient, MockRuleId, [
-      { instanceId: 'alert-1', snoozedAt: OLD_SNOOZED_AT },
-    ]);
+    await atomicRemoveSnoozedInstancesWithEs(
+      esClient,
+      ALERTING_CASES_SAVED_OBJECT_INDEX,
+      MockRuleId,
+      [{ instanceId: 'alert-1', snoozedAt: OLD_SNOOZED_AT }]
+    );
 
     // The script receives only the original (instanceId, snoozedAt) pair.
     // A concurrent re-snooze entry with NEW_SNOOZED_AT will not match the

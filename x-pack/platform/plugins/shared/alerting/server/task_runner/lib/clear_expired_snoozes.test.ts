@@ -52,6 +52,7 @@ describe('clearExpiredSnoozes()', () => {
     ]);
     await clearExpiredSnoozes({
       esClient,
+      index: ALERTING_CASES_SAVED_OBJECT_INDEX,
       logger: mockLogger,
       rule: { ...attributes, id },
     });
@@ -99,6 +100,7 @@ describe('clearExpiredSnoozes()', () => {
     ]);
     await clearExpiredSnoozes({
       esClient,
+      index: ALERTING_CASES_SAVED_OBJECT_INDEX,
       logger: mockLogger,
       rule: { ...attributes, id },
     });
@@ -145,6 +147,7 @@ describe('clearExpiredSnoozes()', () => {
     ]);
     await clearExpiredSnoozes({
       esClient,
+      index: ALERTING_CASES_SAVED_OBJECT_INDEX,
       logger: mockLogger,
       rule: { ...attributes, id },
       version: 'WzQsMV0=',
@@ -194,6 +197,7 @@ describe('clearExpiredSnoozes()', () => {
     ]);
     await clearExpiredSnoozes({
       esClient,
+      index: ALERTING_CASES_SAVED_OBJECT_INDEX,
       logger: mockLogger,
       rule: { ...attributes, id },
     });
@@ -204,6 +208,7 @@ describe('clearExpiredSnoozes()', () => {
     const { attributes, id } = getRule([]);
     await clearExpiredSnoozes({
       esClient,
+      index: ALERTING_CASES_SAVED_OBJECT_INDEX,
       logger: mockLogger,
       rule: { ...attributes, id },
     });
@@ -214,6 +219,7 @@ describe('clearExpiredSnoozes()', () => {
     const { attributes, id } = getRule(undefined);
     await clearExpiredSnoozes({
       esClient,
+      index: ALERTING_CASES_SAVED_OBJECT_INDEX,
       logger: mockLogger,
       rule: { ...attributes, id },
     });

@@ -30,9 +30,16 @@ function callWithSanitizedArgs(func: Function, ...args: any[]) {
   func.apply(console, cleanedArgs);
 }
 
-if (process.env.NODE_ENV === 'production') {
-  console.log('Native global console methods have been overridden in production environment.');
+/**
+ * Whether the native global `console` methods have been overridden (always
+ * true in a production environment). Consumed by `@kbn/core-root-server-internal`
+ * to log this fact once Core's Logging Service is available, rather than via
+ * a raw, unformatted `console.log` at module-load time (before the logging
+ * system, and therefore any configured layout/appenders, exist).
+ */
+export const consoleHardeningApplied = process.env.NODE_ENV === 'production';
 
+if (consoleHardeningApplied) {
   console.debug = function (...args) {
     callWithSanitizedArgs(unsafeConsole.debug, ...args);
   };

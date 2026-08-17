@@ -46,6 +46,7 @@ import {
   type SavedObjectsConfigType,
   type SavedObjectsMigrationConfigType,
   type IKibanaMigrator,
+  type KibanaConfigType,
   HASH_TO_VERSION_MAP,
 } from '@kbn/core-saved-objects-base-server-internal';
 import {
@@ -61,7 +62,11 @@ import {
 import type { InternalCoreUsageDataSetup } from '@kbn/core-usage-data-base-server-internal';
 import type { DeprecationRegistryProvider } from '@kbn/core-deprecations-server';
 import type { NodeInfo } from '@kbn/core-node-server';
-import { MAIN_SAVED_OBJECT_INDEX } from '@kbn/core-saved-objects-server';
+import {
+  MAIN_SAVED_OBJECT_INDEX,
+  applySavedObjectIndexSuffix,
+  normalizeKibanaIndexSuffix,
+} from '@kbn/core-saved-objects-server';
 import type { SavedObjectsAccessControlTransforms } from '@kbn/core-saved-objects-server/src/contracts';
 import { registerRoutes } from './routes';
 import { calculateStatus$ } from './status';
@@ -120,6 +125,15 @@ export class SavedObjectsService
   private logger: Logger;
   private readonly kibanaVersion: string;
 
+  /**
+   * The resolved default saved object index name, driven by the `kibana.index`
+   * setting. Defaults to `.kibana`; a configured suffix extends every saved
+   * object index (e.g. `.kibana-custom`, `.kibana_task_manager-custom`).
+   * Resolved during {@link setup} and consumed by the migrator, repository,
+   * and index accessors.
+   */
+  private kibanaIndex: string = MAIN_SAVED_OBJECT_INDEX;
+
   private setupDeps?: SavedObjectsSetupDeps;
   private config?: SavedObjectConfig;
   private clientFactoryProvider?: SavedObjectsClientFactoryProvider;
@@ -153,6 +167,14 @@ export class SavedObjectsService
     const savedObjectsMigrationConfig = await firstValueFrom(
       this.coreContext.configService.atPath<SavedObjectsMigrationConfigType>('migrations')
     );
+    const kibanaConfig = await firstValueFrom(
+      this.coreContext.configService.atPath<KibanaConfigType>('kibana')
+    );
+    // `kibanaConfig.index` has already been validated by `kibanaConfigSchema`,
+    // so `normalizeKibanaIndexSuffix` is guaranteed to return a valid suffix here.
+    this.kibanaIndex = `${MAIN_SAVED_OBJECT_INDEX}${
+      normalizeKibanaIndexSuffix(kibanaConfig.index) ?? ''
+    }`;
     this.config = new SavedObjectConfig(savedObjectsConfig, savedObjectsMigrationConfig);
     const accessControlEnabled = this.config.enableAccessControl;
     this.typeRegistry.setAccessControlEnabled(accessControlEnabled);
@@ -162,6 +184,7 @@ export class SavedObjectsService
         savedObjectsConfig: this.config,
         kibanaVersion: this.kibanaVersion,
         typeRegistry: this.typeRegistry,
+        defaultIndex: this.kibanaIndex,
       })
     );
 
@@ -174,6 +197,7 @@ export class SavedObjectsService
       config: this.config,
       migratorPromise: firstValueFrom(this.migrator$),
       kibanaVersion: this.kibanaVersion,
+      defaultIndex: this.kibanaIndex,
       isServerless: this.coreContext.env.packageInfo.buildFlavor === 'serverless',
       docLinks,
     });
@@ -243,7 +267,7 @@ export class SavedObjectsService
         this.typeRegistry.registerType(type);
       },
       getTypeRegistry: () => this.typeRegistry,
-      getDefaultIndex: () => MAIN_SAVED_OBJECT_INDEX,
+      getDefaultIndex: () => this.kibanaIndex,
       isAccessControlEnabled: () => accessControlEnabled,
     };
   }
@@ -343,7 +367,7 @@ export class SavedObjectsService
       return SavedObjectsRepository.createRepository(
         migrator,
         this.typeRegistry,
-        MAIN_SAVED_OBJECT_INDEX,
+        this.kibanaIndex,
         esClient,
         this.logger.get('repository'),
         includedHiddenTypes,
@@ -391,7 +415,10 @@ export class SavedObjectsService
       clientProvider.setClientFactory(clientFactory);
     }
 
-    const allIndices = getAllIndices({ registry: this.typeRegistry });
+    const allIndices = getAllIndices({
+      registry: this.typeRegistry,
+      defaultIndex: this.kibanaIndex,
+    });
 
     this.started = true;
 
@@ -425,16 +452,20 @@ export class SavedObjectsService
           createAccessControlImportTransforms: this.accessControlTransforms?.createImportTransforms,
         }),
       getTypeRegistry: () => this.typeRegistry,
-      getDefaultIndex: () => MAIN_SAVED_OBJECT_INDEX,
+      getDefaultIndex: () => this.kibanaIndex,
       getIndexForType: (type: string) => {
         const definition = this.typeRegistry.getType(type);
-        return definition?.indexPattern ?? MAIN_SAVED_OBJECT_INDEX;
+        return definition?.indexPattern
+          ? applySavedObjectIndexSuffix(definition.indexPattern, this.kibanaIndex)
+          : this.kibanaIndex;
       },
       getIndicesForTypes: (types: string[]) => {
         const indices = new Set<string>();
         types.forEach((type) => {
           const definition = this.typeRegistry.getType(type);
-          const index = definition?.indexPattern ?? MAIN_SAVED_OBJECT_INDEX;
+          const index = definition?.indexPattern
+            ? applySavedObjectIndexSuffix(definition.indexPattern, this.kibanaIndex)
+            : this.kibanaIndex;
           indices.add(index);
         });
         return [...indices];
@@ -521,7 +552,7 @@ export class SavedObjectsService
       logger: this.logger,
       kibanaVersion: this.kibanaVersion,
       soMigrationsConfig,
-      kibanaIndex: MAIN_SAVED_OBJECT_INDEX,
+      kibanaIndex: this.kibanaIndex,
       hashToVersionMap: HASH_TO_VERSION_MAP,
       client,
       docLinks,

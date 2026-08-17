@@ -98,6 +98,9 @@ describe('SavedObjectsService', () => {
       if (path === 'migrations') {
         return new BehaviorSubject({ skip: skipMigration });
       }
+      if (path === 'kibana') {
+        return new BehaviorSubject({ enabled: true, index: '' });
+      }
       return new BehaviorSubject({
         maxImportPayloadBytes: new ByteSizeValue(0),
         maxImportExportSize: 10000,

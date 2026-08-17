@@ -13,7 +13,6 @@ import type {
 } from '@kbn/core/server';
 import { SavedObjectsErrorHelpers } from '@kbn/core/server';
 import { decodeRequestVersion } from '@kbn/core-saved-objects-base-server-internal';
-import { ALERTING_CASES_SAVED_OBJECT_INDEX } from '@kbn/core-saved-objects-server';
 import type { RawRule } from '../types';
 
 import type { RuleAttributesNotPartiallyUpdatable } from '.';
@@ -99,13 +98,15 @@ const REMOVE_SNOOZED_INSTANCES_SCRIPT = `
 // a freshly created entry has a different snoozedAt and will not be removed.
 export async function atomicRemoveSnoozedInstancesWithEs(
   esClient: ElasticsearchClient,
+  // The resolved rule saved object index (honors any custom `kibana.index` suffix).
+  index: string,
   id: string,
   expiredInstances: ExpiredSnoozedInstance[],
   options: Pick<PartiallyUpdateRuleSavedObjectOptions, 'ignore404' | 'refresh'> = {}
 ): Promise<void> {
   const updateParams = {
     id: `alert:${id}`,
-    index: ALERTING_CASES_SAVED_OBJECT_INDEX,
+    index,
     retry_on_conflict: 3,
     script: {
       lang: 'painless' as const,
@@ -130,6 +131,8 @@ export async function atomicRemoveSnoozedInstancesWithEs(
 // need to be included in any (user-centric) audit logs.
 export async function partiallyUpdateRuleWithEs(
   esClient: ElasticsearchClient,
+  // The resolved rule saved object index (honors any custom `kibana.index` suffix).
+  index: string,
   id: string,
   attributes: PartiallyUpdateableRuleAttributes,
   options: PartiallyUpdateRuleSavedObjectOptions = {}
@@ -144,7 +147,7 @@ export async function partiallyUpdateRuleWithEs(
 
   const updateParams = {
     id: `alert:${id}`,
-    index: ALERTING_CASES_SAVED_OBJECT_INDEX,
+    index,
     ...(options.version ? decodeRequestVersion(options.version) : {}),
     doc: {
       alert: attributesAllowedForUpdate,

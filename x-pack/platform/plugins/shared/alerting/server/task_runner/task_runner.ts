@@ -243,8 +243,10 @@ export class TaskRunner<
       // eslint-disable-next-line no-empty
     } catch {}
     try {
+      const ruleIndex = this.context.savedObjects.getIndexForType(RULE_SAVED_OBJECT_TYPE);
       await partiallyUpdateRuleWithEs(
         client,
+        ruleIndex,
         ruleId,
         { ...docAttributes, running: false },
         {
@@ -254,10 +256,16 @@ export class TaskRunner<
       );
       if (snoozedInstancesToRemove?.length) {
         // Per-alert snooze expiry is applied via an atomic Painless script.
-        await atomicRemoveSnoozedInstancesWithEs(client, ruleId, snoozedInstancesToRemove, {
-          ignore404: true,
-          refresh: false,
-        });
+        await atomicRemoveSnoozedInstancesWithEs(
+          client,
+          ruleIndex,
+          ruleId,
+          snoozedInstancesToRemove,
+          {
+            ignore404: true,
+            refresh: false,
+          }
+        );
       }
       return true;
     } catch (err) {
@@ -709,6 +717,7 @@ export class TaskRunner<
         try {
           await clearExpiredSnoozes({
             esClient: this.context.elasticsearch.client.asInternalUser,
+            index: this.context.savedObjects.getIndexForType(RULE_SAVED_OBJECT_TYPE),
             logger: this.logger,
             rule: runRuleParams.rule,
             version: runRuleParams.version,

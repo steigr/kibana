@@ -16,12 +16,14 @@
  * tracked by https://github.com/elastic/rna-program/issues/426.
  */
 
-import type { ElasticsearchClient } from '@kbn/core/server';
+import type { ElasticsearchClient, SavedObjectsServiceStart } from '@kbn/core/server';
 import type { RouteSecurity } from '@kbn/core-http-server';
 import {
   ALERTING_CASES_SAVED_OBJECT_INDEX,
   TASK_MANAGER_SAVED_OBJECT_INDEX,
+  applySavedObjectIndexSuffix,
 } from '@kbn/core-saved-objects-server';
+import { CoreStart } from '@kbn/core-di-server';
 import { isResponseError } from '@kbn/es-errors';
 import { inject, injectable } from 'inversify';
 
@@ -79,7 +81,8 @@ export class ResetResourcesRoute extends BaseAlertingRoute {
 
   constructor(
     @inject(AlertingRouteContext) ctx: AlertingRouteContext,
-    @inject(EsServiceScopedToken) private readonly esClient: ElasticsearchClient
+    @inject(EsServiceScopedToken) private readonly esClient: ElasticsearchClient,
+    @inject(CoreStart('savedObjects')) private readonly savedObjects: SavedObjectsServiceStart
   ) {
     super(ctx);
   }
@@ -114,7 +117,10 @@ export class ResetResourcesRoute extends BaseAlertingRoute {
    */
   private async deleteAllSavedObjects(): Promise<void> {
     await this.esClient.deleteByQuery({
-      index: ALERTING_CASES_SAVED_OBJECT_INDEX,
+      index: applySavedObjectIndexSuffix(
+        ALERTING_CASES_SAVED_OBJECT_INDEX,
+        this.savedObjects.getDefaultIndex()
+      ),
       query: {
         terms: { type: ALERTING_V2_SAVED_OBJECT_TYPES },
       },
@@ -135,7 +141,10 @@ export class ResetResourcesRoute extends BaseAlertingRoute {
    */
   private async deleteAllRuleTasks(): Promise<void> {
     await this.esClient.deleteByQuery({
-      index: TASK_MANAGER_SAVED_OBJECT_INDEX,
+      index: applySavedObjectIndexSuffix(
+        TASK_MANAGER_SAVED_OBJECT_INDEX,
+        this.savedObjects.getDefaultIndex()
+      ),
       query: {
         bool: {
           must: [

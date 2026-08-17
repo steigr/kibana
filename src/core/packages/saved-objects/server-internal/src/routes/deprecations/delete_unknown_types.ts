@@ -13,11 +13,12 @@ import { deleteUnknownTypeObjects } from '../../deprecations';
 
 interface RouteDependencies {
   kibanaVersion: string;
+  defaultIndex: string;
 }
 
 export const registerDeleteUnknownTypesRoute = (
   router: InternalSavedObjectRouter,
-  { kibanaVersion }: RouteDependencies
+  { kibanaVersion, defaultIndex }: RouteDependencies
 ) => {
   router.post(
     {
@@ -36,6 +37,7 @@ export const registerDeleteUnknownTypesRoute = (
         esClient: elasticsearch.client,
         typeRegistry: savedObjects.typeRegistry,
         kibanaVersion,
+        defaultIndex,
       });
       return res.ok({
         body: {

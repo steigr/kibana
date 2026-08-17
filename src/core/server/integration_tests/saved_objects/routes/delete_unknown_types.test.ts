@@ -44,6 +44,7 @@ describe('POST /internal/saved_objects/deprecations/_delete_unknown_types', () =
     );
     registerDeleteUnknownTypesRoute(router, {
       kibanaVersion,
+      defaultIndex: '.kibana',
     });
 
     await server.start();

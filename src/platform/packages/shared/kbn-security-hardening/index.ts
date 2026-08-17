@@ -8,4 +8,4 @@
  */
 
 import './prototype';
-export { unsafeConsole } from './console';
+export { unsafeConsole, consoleHardeningApplied } from './console';
