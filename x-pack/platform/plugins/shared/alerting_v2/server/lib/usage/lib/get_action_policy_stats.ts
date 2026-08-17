@@ -6,17 +6,18 @@
  */
 
 import type { ElasticsearchClient } from '@kbn/core/server';
-import { ALERTING_CASES_SAVED_OBJECT_INDEX } from '@kbn/core-saved-objects-server';
 import { ACTION_POLICY_SAVED_OBJECT_TYPE } from '../../../saved_objects';
 import { AGENT_BUILDER_TAG } from '../../../agent_builder/common/constants';
 import { TERMS_SIZE, bucketsToArray } from './constants';
 import type { ActionPolicyStatsAggregations, ActionPolicyStatsResults } from './types';
 
 export async function getActionPolicyStats(
-  esClient: ElasticsearchClient
+  esClient: ElasticsearchClient,
+  // The resolved alerting saved object index (honors any custom `kibana.index` suffix).
+  index: string
 ): Promise<ActionPolicyStatsResults> {
   const response = await esClient.search({
-    index: ALERTING_CASES_SAVED_OBJECT_INDEX,
+    index,
     size: 0,
     track_total_hits: true,
     query: {

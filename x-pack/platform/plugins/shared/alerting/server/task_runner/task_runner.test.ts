@@ -9,6 +9,7 @@ import sinon from 'sinon';
 import { errors } from '@elastic/elasticsearch';
 import { usageCountersServiceMock } from '@kbn/usage-collection-plugin/server/usage_counters/usage_counters_service.mock';
 import type { SavedObject } from '@kbn/core/server';
+import { ALERTING_CASES_SAVED_OBJECT_INDEX } from '@kbn/core-saved-objects-server';
 import type {
   RuleExecutorOptions,
   RuleTypeParams,
@@ -226,6 +227,7 @@ describe('Task Runner', () => {
         }),
       });
     savedObjectsService.getScopedClient.mockReturnValue(services.savedObjectsClient);
+    savedObjectsService.getIndexForType.mockReturnValue(ALERTING_CASES_SAVED_OBJECT_INDEX);
     elasticsearchService.client.asScoped.mockReturnValue(services.scopedClusterClient);
     taskRunnerFactoryInitializerParams.actionsPlugin.getActionsClientWithRequest.mockResolvedValue(
       actionsClient

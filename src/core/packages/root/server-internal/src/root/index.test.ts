@@ -7,7 +7,13 @@
  * License v3.0 only", or the "Server Side Public License, v 1".
  */
 
-import { rawConfigService, configService, logger, mockServer } from './index.test.mocks';
+import {
+  rawConfigService,
+  configService,
+  logger,
+  mockServer,
+  securityHardening,
+} from './index.test.mocks';
 
 import { BehaviorSubject } from 'rxjs';
 import { filter, first } from 'rxjs';
@@ -40,6 +46,7 @@ afterEach(() => {
   mockServer.preboot.mockReset();
   mockServer.setup.mockReset();
   mockServer.stop.mockReset();
+  securityHardening.consoleHardeningApplied = false;
 });
 
 test('preboot services on "preboot"', async () => {
@@ -53,6 +60,28 @@ test('preboot services on "preboot"', async () => {
   expect(logger.upgrade).toHaveBeenCalledTimes(1);
   expect(logger.upgrade).toHaveBeenLastCalledWith({ someValue: 'foo' });
   expect(mockServer.preboot).toHaveBeenCalledTimes(1);
+});
+
+test('logs the console hardening notice via the structured logger once logging is configured', async () => {
+  securityHardening.consoleHardeningApplied = true;
+
+  const root = new Root(rawConfigService, env);
+  await root.preboot();
+
+  expect(logger.get('root').info).toHaveBeenCalledWith(
+    'Native global console methods have been overridden in production environment.'
+  );
+});
+
+test('does not log the console hardening notice when hardening was not applied', async () => {
+  securityHardening.consoleHardeningApplied = false;
+
+  const root = new Root(rawConfigService, env);
+  await root.preboot();
+
+  expect(logger.get('root').info).not.toHaveBeenCalledWith(
+    'Native global console methods have been overridden in production environment.'
+  );
 });
 
 test('sets up services on "setup"', async () => {

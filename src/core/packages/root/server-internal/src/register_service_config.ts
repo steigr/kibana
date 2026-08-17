@@ -25,6 +25,7 @@ import { config as elasticsearchConfig } from '@kbn/core-elasticsearch-server-in
 import { config as coreAppConfig } from '@kbn/core-apps-server-internal';
 import { opsConfig } from '@kbn/core-metrics-server-internal';
 import {
+  kibanaConfig,
   savedObjectsConfig,
   savedObjectsMigrationConfig,
 } from '@kbn/core-saved-objects-base-server-internal';
@@ -61,6 +62,7 @@ export function registerServiceConfig(configService: ConfigService) {
     externalUrlConfig,
     httpConfig,
     i18nConfig,
+    kibanaConfig,
     loggingConfig,
     nodeConfig,
     opsConfig,

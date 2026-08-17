@@ -12,12 +12,14 @@ import { partiallyUpdateRuleWithEs } from '../../saved_objects';
 
 interface ClearExpiredSnoozesOpts {
   esClient: ElasticsearchClient;
+  // The resolved rule saved object index (honors any custom `kibana.index` suffix).
+  index: string;
   logger: Logger;
   rule: Pick<SanitizedRule<RuleTypeParams>, 'id' | 'snoozeSchedule'>;
   version?: string;
 }
 export async function clearExpiredSnoozes(opts: ClearExpiredSnoozesOpts): Promise<void> {
-  const { esClient, logger, rule, version } = opts;
+  const { esClient, index, logger, rule, version } = opts;
 
   if (!rule.snoozeSchedule || !rule.snoozeSchedule.length) return;
 
@@ -38,5 +40,5 @@ export async function clearExpiredSnoozes(opts: ClearExpiredSnoozesOpts): Promis
 
   const updateOptions = { version, refresh: false };
 
-  await partiallyUpdateRuleWithEs(esClient, rule.id, updateAttributes, updateOptions);
+  await partiallyUpdateRuleWithEs(esClient, index, rule.id, updateAttributes, updateOptions);
 }

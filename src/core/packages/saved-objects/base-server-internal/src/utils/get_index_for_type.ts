@@ -7,12 +7,21 @@
  * License v3.0 only", or the "Server Side Public License, v 1".
  */
 
-import type { ISavedObjectTypeRegistry } from '@kbn/core-saved-objects-server';
+import {
+  type ISavedObjectTypeRegistry,
+  applySavedObjectIndexSuffix,
+} from '@kbn/core-saved-objects-server';
 
 interface GetIndexForTypeOptions {
   type: string;
   typeRegistry: ISavedObjectTypeRegistry;
   kibanaVersion: string;
+  /**
+   * The resolved default saved object index name, i.e. `.kibana` with any
+   * `kibana.index` suffix applied (e.g. `.kibana-custom`). It is both the
+   * fallback index for types that don't declare an `indexPattern` and the
+   * source of the suffix applied to the canonical index of types that do.
+   */
   defaultIndex: string;
 }
 
@@ -22,5 +31,9 @@ export const getIndexForType = ({
   defaultIndex,
   kibanaVersion,
 }: GetIndexForTypeOptions): string => {
-  return `${typeRegistry.getIndex(type) || defaultIndex}_${kibanaVersion}`;
+  const registeredIndex = typeRegistry.getIndex(type);
+  const baseIndex = registeredIndex
+    ? applySavedObjectIndexSuffix(registeredIndex, defaultIndex)
+    : defaultIndex;
+  return `${baseIndex}_${kibanaVersion}`;
 };

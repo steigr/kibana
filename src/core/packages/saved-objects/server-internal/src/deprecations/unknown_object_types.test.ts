@@ -13,7 +13,11 @@ import type { SearchResponse } from '@elastic/elasticsearch/lib/api/types';
 import { deleteUnknownTypeObjects, getUnknownTypesDeprecations } from './unknown_object_types';
 import { typeRegistryMock } from '@kbn/core-saved-objects-base-server-mocks';
 import { elasticsearchClientMock } from '@kbn/core-elasticsearch-client-server-mocks';
-import { type SavedObjectsType, ALL_SAVED_OBJECT_INDICES } from '@kbn/core-saved-objects-server';
+import {
+  type SavedObjectsType,
+  ALL_SAVED_OBJECT_INDICES,
+  MAIN_SAVED_OBJECT_INDEX,
+} from '@kbn/core-saved-objects-server';
 
 const createAggregateTypesSearchResponse = (
   typesIds: Record<string, string[]> = {}
@@ -48,6 +52,7 @@ const createAggregateTypesSearchResponse = (
 
 describe('unknown saved object types deprecation', () => {
   const kibanaVersion = '8.0.0';
+  const defaultIndex = MAIN_SAVED_OBJECT_INDEX;
   const expectedTargetIndices = ALL_SAVED_OBJECT_INDICES.map(
     (index) => `${index}_${kibanaVersion}`
   );
@@ -75,6 +80,7 @@ describe('unknown saved object types deprecation', () => {
         esClient,
         typeRegistry,
         kibanaVersion,
+        defaultIndex,
       });
 
       expect(esClient.asInternalUser.search).toHaveBeenCalledTimes(1);
@@ -86,11 +92,31 @@ describe('unknown saved object types deprecation', () => {
       );
     });
 
+    it('applies a custom `kibana.index` suffix to the searched indices', async () => {
+      await getUnknownTypesDeprecations({
+        esClient,
+        typeRegistry,
+        kibanaVersion,
+        defaultIndex: '.kibana-custom',
+      });
+
+      const expectedSuffixedIndices = ALL_SAVED_OBJECT_INDICES.map(
+        (index) => `${index}-custom_${kibanaVersion}`
+      );
+      expect(esClient.asInternalUser.search).toHaveBeenCalledWith(
+        expect.objectContaining({
+          index: expectedSuffixedIndices,
+          ignore_unavailable: true,
+        })
+      );
+    });
+
     it('excludes all registered types from the search query', async () => {
       await getUnknownTypesDeprecations({
         esClient,
         typeRegistry,
         kibanaVersion,
+        defaultIndex,
       });
 
       expect(esClient.asInternalUser.search).toHaveBeenCalledWith(
@@ -111,6 +137,7 @@ describe('unknown saved object types deprecation', () => {
         esClient,
         typeRegistry,
         kibanaVersion,
+        defaultIndex,
       });
 
       expect(deprecations.length).toEqual(0);
@@ -129,6 +156,7 @@ describe('unknown saved object types deprecation', () => {
         esClient,
         typeRegistry,
         kibanaVersion,
+        defaultIndex,
       });
 
       expect(deprecations.length).toEqual(1);
@@ -162,6 +190,7 @@ describe('unknown saved object types deprecation', () => {
         esClient,
         typeRegistry,
         kibanaVersion,
+        defaultIndex,
       });
 
       // ALL_SAVED_OBJECT_INDICES ensures the index is still scanned even without registered
@@ -176,6 +205,7 @@ describe('unknown saved object types deprecation', () => {
         esClient,
         typeRegistry,
         kibanaVersion,
+        defaultIndex,
       });
 
       expect(esClient.asInternalUser.deleteByQuery).toHaveBeenCalledTimes(1);

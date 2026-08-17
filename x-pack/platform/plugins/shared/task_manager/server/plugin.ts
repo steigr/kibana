@@ -27,6 +27,7 @@ import type { EncryptedSavedObjectsClient } from '@kbn/encrypted-saved-objects-s
 import type { LicensingPluginStart } from '@kbn/licensing-plugin/server';
 import type { PublicMethodsOf } from '@kbn/utility-types';
 import type { InvalidateAPIKeysParams } from '@kbn/security-plugin-types-server';
+import { applySavedObjectIndexSuffix } from '@kbn/core-saved-objects-server';
 import {
   registerDeleteInactiveNodesTaskDefinition,
   scheduleDeleteInactiveNodesTaskDefinition,
@@ -342,7 +343,9 @@ export class TaskManagerPlugin
     this.enrichFakeRequest = core.security.acquireFakeRequestEnricher();
 
     return {
-      index: TASK_MANAGER_INDEX,
+      // Honor a custom `kibana.index` suffix so the exposed index matches where
+      // task documents actually live (e.g. `.kibana_task_manager-custom`).
+      index: applySavedObjectIndexSuffix(TASK_MANAGER_INDEX, core.savedObjects.getDefaultIndex()),
       addMiddleware: (middleware: Middleware) => {
         this.middleware = addMiddlewareToChain(this.middleware, middleware);
       },
@@ -396,7 +399,9 @@ export class TaskManagerPlugin
       savedObjectsRepository,
       savedObjectsService: savedObjects,
       esClient: elasticsearch.client.asInternalUser,
-      index: TASK_MANAGER_INDEX,
+      // Resolve the task index through the SO type registry so it reflects any
+      // custom `kibana.index` suffix (defaults to `.kibana_task_manager`).
+      index: savedObjects.getIndexForType(TASK_SO_NAME),
       definitions: this.definitions,
       taskManagerId: `kibana:${this.taskManagerId!}`,
       adHocTaskCounter: this.adHocTaskCounter,

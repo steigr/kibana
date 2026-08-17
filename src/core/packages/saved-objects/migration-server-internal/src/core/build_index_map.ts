@@ -7,10 +7,19 @@
  * License v3.0 only", or the "Server Side Public License, v 1".
  */
 
-import type { ISavedObjectTypeRegistry } from '@kbn/core-saved-objects-server';
+import {
+  type ISavedObjectTypeRegistry,
+  applySavedObjectIndexSuffix,
+} from '@kbn/core-saved-objects-server';
 import type { SavedObjectsTypeMappingDefinitions } from '@kbn/core-saved-objects-base-server-internal';
 
 export interface CreateIndexMapOptions {
+  /**
+   * The resolved default saved object index name. When `kibana.index` is
+   * customized this carries the configured suffix (e.g. `.kibana-custom`) so
+   * that every derived index (`_task_manager`, `_analytics`, ...) is migrated
+   * under the suffixed name.
+   */
   kibanaIndexName: string;
   registry: ISavedObjectTypeRegistry;
   indexMap: SavedObjectsTypeMappingDefinitions;
@@ -31,8 +40,12 @@ export function createIndexMap({ kibanaIndexName, registry, indexMap }: CreateIn
   Object.keys(indexMap).forEach((type) => {
     const typeDef = registry.getType(type);
     const script = typeDef?.convertToAliasScript;
-    // Defaults to kibanaIndexName if indexPattern isn't defined
-    const indexPattern = typeDef?.indexPattern || kibanaIndexName;
+    // Defaults to kibanaIndexName if indexPattern isn't defined. When a type
+    // declares a canonical `.kibana*` indexPattern, extend it with the
+    // configured suffix (a no-op when no suffix is configured).
+    const indexPattern = typeDef?.indexPattern
+      ? applySavedObjectIndexSuffix(typeDef.indexPattern, kibanaIndexName)
+      : kibanaIndexName;
     if (!Object.hasOwn(map, indexPattern as string)) {
       map[indexPattern] = { typeMappings: {} };
     }

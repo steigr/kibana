@@ -6,6 +6,7 @@
  */
 
 import { elasticsearchServiceMock } from '@kbn/core/server/mocks';
+import { ALERTING_CASES_SAVED_OBJECT_INDEX } from '@kbn/core-saved-objects-server';
 import { getActionPolicyStats } from './get_action_policy_stats';
 
 const elasticsearch = elasticsearchServiceMock.createStart();
@@ -55,7 +56,7 @@ describe('getActionPolicyStats', () => {
   it('returns stats from aggregations', async () => {
     mockSearchResponse({});
 
-    const result = await getActionPolicyStats(esClient);
+    const result = await getActionPolicyStats(esClient, ALERTING_CASES_SAVED_OBJECT_INDEX);
 
     expect(result).toEqual({
       action_policies_count: 5,
@@ -85,7 +86,7 @@ describe('getActionPolicyStats', () => {
       throttleIntervalBuckets: [],
     });
 
-    const result = await getActionPolicyStats(esClient);
+    const result = await getActionPolicyStats(esClient, ALERTING_CASES_SAVED_OBJECT_INDEX);
 
     expect(result.action_policies_avg_group_by_fields_count).toBeNull();
     expect(result.action_policies_count_by_throttle_interval).toEqual([]);
@@ -102,7 +103,7 @@ describe('getActionPolicyStats', () => {
       throttleIntervalBuckets: [],
     });
 
-    const result = await getActionPolicyStats(esClient);
+    const result = await getActionPolicyStats(esClient, ALERTING_CASES_SAVED_OBJECT_INDEX);
 
     expect(result).toEqual({
       action_policies_count: 0,
@@ -123,7 +124,7 @@ describe('getActionPolicyStats', () => {
       hits: { total: { value: 0, relation: 'eq' }, max_score: null, hits: [] },
     } as any);
 
-    const result = await getActionPolicyStats(esClient);
+    const result = await getActionPolicyStats(esClient, ALERTING_CASES_SAVED_OBJECT_INDEX);
 
     expect(result).toEqual({
       action_policies_count: 0,
@@ -152,7 +153,7 @@ describe('getActionPolicyStats', () => {
       },
     } as any);
 
-    const result = await getActionPolicyStats(esClient);
+    const result = await getActionPolicyStats(esClient, ALERTING_CASES_SAVED_OBJECT_INDEX);
 
     expect(result.action_policies_count).toBe(7);
   });

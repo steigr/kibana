@@ -18,10 +18,12 @@ project:
   sourceRoot: src/core/packages/saved-objects/base-server-internal
 dependsOn:
   - '@kbn/logging'
+  - '@kbn/config'
   - '@kbn/config-schema'
   - '@kbn/core-base-server-internal'
   - '@kbn/core-saved-objects-server'
   - '@kbn/core-saved-objects-utils-server'
+  - '@kbn/i18n'
   - '@kbn/std'
   - '@kbn/logging-mocks'
   - '@kbn/safer-lodash-set'
