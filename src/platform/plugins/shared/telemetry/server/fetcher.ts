@@ -26,6 +26,7 @@ import {
 } from 'rxjs';
 import fetch from 'node-fetch';
 import type { TelemetryCollectionManagerPluginStart } from '@kbn/telemetry-collection-manager-plugin/server';
+import type { LicensingPluginStart } from '@kbn/licensing-plugin/server';
 import {
   type PluginInitializerContext,
   type Logger,
@@ -43,6 +44,7 @@ import {
   getTelemetryOptIn,
   getTelemetrySendUsageFrom,
   getTelemetryFailureDetails,
+  resolveConfigTelemetryOptIn,
 } from './telemetry_config';
 import { PAYLOAD_CONTENT_ENCODING } from '../common/constants';
 import type { EncryptedTelemetryPayload } from '../common/types';
@@ -51,6 +53,7 @@ import { isReportIntervalExpired } from '../common/is_report_interval_expired';
 
 export interface FetcherTaskDepsStart {
   telemetryCollectionManager: TelemetryCollectionManagerPluginStart;
+  licensing?: LicensingPluginStart;
 }
 
 interface TelemetryConfig {
@@ -78,6 +81,7 @@ export class FetcherTask {
   private readonly lastReported$ = new BehaviorSubject<number>(0);
   private internalRepository?: ISavedObjectsRepository;
   private telemetryCollectionManager?: TelemetryCollectionManagerPluginStart;
+  private licensing?: LicensingPluginStart;
 
   constructor(initializerContext: PluginInitializerContext<TelemetryConfigType>) {
     this.config$ = initializerContext.config.create();
@@ -85,9 +89,13 @@ export class FetcherTask {
     this.logger = initializerContext.logger.get('fetcher');
   }
 
-  public start({ savedObjects }: CoreStart, { telemetryCollectionManager }: FetcherTaskDepsStart) {
+  public start(
+    { savedObjects }: CoreStart,
+    { telemetryCollectionManager, licensing }: FetcherTaskDepsStart
+  ) {
     this.internalRepository = savedObjects.createInternalRepository([TELEMETRY_SAVED_OBJECT_TYPE]);
     this.telemetryCollectionManager = telemetryCollectionManager;
+    this.licensing = licensing;
 
     this.subscriptions.add(this.validateConnectivity());
     this.subscriptions.add(this.startSendIfDueSubscription());
@@ -220,7 +228,10 @@ export class FetcherTask {
     const currentKibanaVersion = this.currentKibanaVersion;
     const configTelemetrySendUsageFrom = config.sendUsageFrom;
     const allowChangingOptInStatus = config.allowChangingOptInStatus;
-    const configTelemetryOptIn = typeof config.optIn === 'undefined' ? null : config.optIn;
+    const configTelemetryOptIn = await resolveConfigTelemetryOptIn(
+      config.optIn,
+      () => this.licensing
+    );
     const telemetryUrl = getTelemetryChannelEndpoint({
       appendServerlessChannelsSuffix: config.appendServerlessChannelsSuffix,
       channelName: 'snapshot',

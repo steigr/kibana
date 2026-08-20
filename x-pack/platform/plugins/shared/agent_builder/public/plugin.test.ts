@@ -130,6 +130,7 @@ const createMockCoreStart = (sidebarApp: ReturnType<typeof createMockSidebarApp>
       next: { aiButton: { register: jest.fn() } },
     },
     uiSettings: {
+      get: jest.fn(() => true),
       get$: jest.fn(() => new BehaviorSubject(false)),
     },
     analytics: { reportEvent: jest.fn() },

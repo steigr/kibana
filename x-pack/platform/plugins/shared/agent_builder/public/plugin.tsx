@@ -15,7 +15,10 @@ import {
 import type { Logger } from '@kbn/logging';
 import type { AttachmentInput } from '@kbn/agent-builder-common/attachments';
 import { BehaviorSubject, distinctUntilChanged, type Subscription } from 'rxjs';
-import { AGENT_BUILDER_EXPERIMENTAL_FEATURES_SETTING_ID } from '@kbn/management-settings-ids';
+import {
+  AGENT_BUILDER_EXPERIMENTAL_FEATURES_SETTING_ID,
+  AGENT_BUILDER_NAV_ENABLED_SETTING_ID,
+} from '@kbn/management-settings-ids';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import type { UsageCollectionSetup } from '@kbn/usage-collection-plugin/public';
@@ -174,7 +177,9 @@ export class AgentBuilderPlugin
 
     const { navigationService, usageCollection } = this.setupServices;
 
-    const hasAgentBuilder = core.application.capabilities.agentBuilder?.show === true;
+    const hasAgentBuilder =
+      core.application.capabilities.agentBuilder?.show === true &&
+      core.uiSettings.get<boolean>(AGENT_BUILDER_NAV_ENABLED_SETTING_ID) === true;
     const sidebar = core.chrome.sidebar.getApp('agentBuilder');
 
     const openSidebarInternal = (options?: OpenSidebarInternalOptions) => {

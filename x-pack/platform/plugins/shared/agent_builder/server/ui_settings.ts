@@ -6,7 +6,7 @@
  */
 
 import { schema } from '@kbn/config-schema';
-import type { UiSettingsServiceSetup } from '@kbn/core-ui-settings-server';
+import type { CoreSetup } from '@kbn/core/server';
 import { i18n } from '@kbn/i18n';
 import {
   AGENT_BUILDER_NAV_ENABLED_SETTING_ID,
@@ -21,22 +21,34 @@ import {
   AGENT_BUILDER_TRACING_REAL_NAMES_SETTING_ID,
   AGENT_BUILDER_TRACING_REAL_IDS_SETTING_ID,
 } from '@kbn/management-settings-ids';
+import type { AgentBuilderStartDependencies } from './types';
 
-export const registerUISettings = ({ uiSettings }: { uiSettings: UiSettingsServiceSetup }) => {
-  uiSettings.register({
+export const registerUISettings = ({
+  coreSetup,
+}: {
+  coreSetup: CoreSetup<AgentBuilderStartDependencies>;
+}) => {
+  coreSetup.uiSettings.register({
     [AGENT_BUILDER_NAV_ENABLED_SETTING_ID]: {
       description: i18n.translate('xpack.agentBuilder.uiSettings.nav.description', {
-        defaultMessage: 'Enables the Elastic Agent Builder icon in the global navigation bar.',
+        defaultMessage:
+          'Shows the Elastic Agent Builder icon in the global navigation bar. Hidden by default on a free/basic (or unavailable) license, since Agent Builder requires an Enterprise subscription.',
       }),
       name: i18n.translate('xpack.agentBuilder.uiSettings.nav.name', {
         defaultMessage: 'Elastic Agent Builder Navigation Icon',
       }),
       schema: schema.boolean(),
-      value: false,
-      technicalPreview: true,
+      getValue: async () => {
+        const [, { licensing }] = await coreSetup.getStartServices();
+        try {
+          const license = await licensing.getLicense();
+          const isFreeEdition = !license.isAvailable || license.type === 'basic';
+          return !isFreeEdition;
+        } catch {
+          return false;
+        }
+      },
       requiresPageReload: true,
-      readonly: true,
-      readonlyMode: 'ui',
     },
     [AGENT_BUILDER_EXPERIMENTAL_FEATURES_SETTING_ID]: {
       description: i18n.translate(

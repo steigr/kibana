@@ -11,6 +11,7 @@ import { type Observable, firstValueFrom } from 'rxjs';
 import type { IRouter, SavedObjectsClient } from '@kbn/core/server';
 import { schema } from '@kbn/config-schema';
 import type { RequestHandler } from '@kbn/core-http-server';
+import type { LicensingPluginStart } from '@kbn/licensing-plugin/server';
 import { labelsSchema } from '../config/telemetry_labels';
 import type { TelemetryConfigType } from '../config';
 import type { v2 } from '../../common/types';
@@ -24,6 +25,7 @@ import {
   getTelemetryAllowChangingOptInStatus,
   getTelemetryOptIn,
   getTelemetrySendUsageFrom,
+  resolveConfigTelemetryOptIn,
 } from '../telemetry_config';
 
 interface RegisterTelemetryConfigRouteOptions {
@@ -31,6 +33,7 @@ interface RegisterTelemetryConfigRouteOptions {
   config$: Observable<TelemetryConfigType>;
   currentKibanaVersion: string;
   savedObjectsInternalClient$: Observable<SavedObjectsClient>;
+  getLicensing: () => LicensingPluginStart | undefined;
 }
 
 export function registerTelemetryConfigRoutes({
@@ -38,6 +41,7 @@ export function registerTelemetryConfigRoutes({
   config$,
   currentKibanaVersion,
   savedObjectsInternalClient$,
+  getLicensing,
 }: RegisterTelemetryConfigRouteOptions) {
   const v2Handler: RequestHandler = async (context, req, res) => {
     const config = await firstValueFrom(config$);
@@ -48,8 +52,10 @@ export function registerTelemetryConfigRoutes({
       telemetrySavedObject,
     });
 
+    const configTelemetryOptIn = await resolveConfigTelemetryOptIn(config.optIn, getLicensing);
+
     const optIn = getTelemetryOptIn({
-      configTelemetryOptIn: config.optIn,
+      configTelemetryOptIn,
       allowChangingOptInStatus,
       telemetrySavedObject,
       currentKibanaVersion,
@@ -63,7 +69,7 @@ export function registerTelemetryConfigRoutes({
     const telemetryNotifyUserAboutOptInDefault = getNotifyUserAboutOptInDefault({
       telemetrySavedObject,
       allowChangingOptInStatus,
-      configTelemetryOptIn: config.optIn,
+      configTelemetryOptIn,
       telemetryOptedIn: optIn,
     });
 

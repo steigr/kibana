@@ -10,6 +10,7 @@
 import type { Observable } from 'rxjs';
 import type { IRouter, Logger, SavedObjectsClient } from '@kbn/core/server';
 import type { TelemetryCollectionManagerPluginSetup } from '@kbn/telemetry-collection-manager-plugin/server';
+import type { LicensingPluginStart } from '@kbn/licensing-plugin/server';
 import { registerTelemetryForceSend } from './telemetry_force_send';
 import type { TelemetryConfigType } from '../config';
 import { registerTelemetryConfigRoutes } from './telemetry_config';
@@ -28,6 +29,7 @@ interface RegisterRoutesParams {
   telemetryCollectionManager: TelemetryCollectionManagerPluginSetup;
   savedObjectsInternalClient$: Observable<SavedObjectsClient>;
   getSecurity: SecurityGetter;
+  getLicensing: () => LicensingPluginStart | undefined;
 }
 
 export function registerRoutes(options: RegisterRoutesParams) {

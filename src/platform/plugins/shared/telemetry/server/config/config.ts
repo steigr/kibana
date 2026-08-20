@@ -24,7 +24,9 @@ const configSchema = schema
     enabled: schema.boolean({ defaultValue: true }),
     allowChangingOptInStatus: schema.boolean({ defaultValue: true }),
     hidePrivacyStatement: schema.boolean({ defaultValue: false }),
-    optIn: schema.boolean({ defaultValue: true }),
+    // Left unset, the effective default is resolved at runtime from the license:
+    // disabled on a free/basic (or unavailable) license, enabled otherwise.
+    optIn: schema.maybe(schema.boolean()),
     // `config` is used internally and not intended to be set
     config: schema.string({ defaultValue: getConfigPath() }),
     banner: schema.boolean({ defaultValue: true }),

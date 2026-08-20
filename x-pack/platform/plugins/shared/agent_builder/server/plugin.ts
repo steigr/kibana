@@ -124,7 +124,7 @@ export class AgentBuilderPlugin
       { capabilityPath: 'agentBuilder.*' }
     );
 
-    registerUISettings({ uiSettings: coreSetup.uiSettings });
+    registerUISettings({ coreSetup });
 
     setupDeps.workflowsExtensions.registerStepDefinition(
       getRunAgentStepDefinition(this.serviceManager)

@@ -350,12 +350,16 @@ export class StreamsPlugin
 
     core
       .getStartServices()
-      .then(async ([coreStart]) => {
+      .then(async ([coreStart, pluginsStart]) => {
         const soClient = coreStart.savedObjects.getUnsafeInternalClient();
         const startupUiSettingsClient = coreStart.uiSettings.asScopedToClient(soClient);
         const esClient = coreStart.elasticsearch.client.asInternalUser;
 
-        if (this.config.preconfigured.enabled) {
+        const license = await pluginsStart.licensing.getLicense();
+        const isFreeEdition = !license.isAvailable || license.type === 'basic';
+        const preconfiguredEnabled = this.config.preconfigured.enabled ?? !isFreeEdition;
+
+        if (preconfiguredEnabled) {
           const streamsSettingsStorageClient = createStreamsSettingsStorageClient(
             esClient,
             this.logger

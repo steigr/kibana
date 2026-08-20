@@ -17,6 +17,7 @@
     ],
     "optionalPlugins": [
       "home",
+      "licensing",
       "security"
     ],
     "requiredBundles": [

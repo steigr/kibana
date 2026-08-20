@@ -10,7 +10,9 @@ import { schema } from '@kbn/config-schema';
 
 export const configSchema = schema.object({
   preconfigured: schema.object({
-    enabled: schema.boolean({ defaultValue: true }),
+    // Left unset, the effective default is resolved at startup from the license:
+    // disabled on a free/basic (or unavailable) license, enabled otherwise.
+    enabled: schema.maybe(schema.boolean()),
     stream_definitions: schema.arrayOf(schema.any(), { defaultValue: [] }),
   }),
   workers: schema.object({

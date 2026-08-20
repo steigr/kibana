@@ -15,3 +15,4 @@ export {
 export { getNotifyUserAboutOptInDefault } from './get_telemetry_notify_user_about_optin_default';
 export { getTelemetryOptIn } from './get_telemetry_opt_in';
 export { getTelemetrySendUsageFrom } from './get_telemetry_send_usage_from';
+export { resolveConfigTelemetryOptIn } from './resolve_config_opt_in';

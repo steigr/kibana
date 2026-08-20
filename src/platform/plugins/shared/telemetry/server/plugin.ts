@@ -40,6 +40,7 @@ import type {
   Logger,
 } from '@kbn/core/server';
 import type { SecurityPluginStart } from '@kbn/security-plugin/server';
+import type { LicensingPluginStart } from '@kbn/licensing-plugin/server';
 import { SavedObjectsClient } from '@kbn/core/server';
 
 import apm from 'elastic-apm-node';
@@ -60,7 +61,7 @@ import type { TelemetryConfigLabels, TelemetryConfigType } from './config';
 import { FetcherTask } from './fetcher';
 import { OPT_IN_POLL_INTERVAL_MS } from '../common/constants';
 import { getTelemetryChannelEndpoint } from '../common/telemetry_config';
-import { getTelemetryOptIn } from './telemetry_config';
+import { getTelemetryOptIn, resolveConfigTelemetryOptIn } from './telemetry_config';
 
 interface TelemetryPluginsDepsSetup {
   usageCollection: UsageCollectionSetup;
@@ -70,6 +71,7 @@ interface TelemetryPluginsDepsSetup {
 interface TelemetryPluginsDepsStart {
   telemetryCollectionManager: TelemetryCollectionManagerPluginStart;
   security?: SecurityPluginStart;
+  licensing?: LicensingPluginStart;
 }
 
 /**
@@ -139,6 +141,7 @@ export class TelemetryPlugin implements Plugin<TelemetryPluginSetup, TelemetryPl
   private readonly pluginStop$ = new ReplaySubject<void>(1);
 
   private security?: SecurityPluginStart;
+  private licensing?: LicensingPluginStart;
 
   constructor(initializerContext: PluginInitializerContext<TelemetryConfigType>) {
     this.logger = initializerContext.logger.get();
@@ -231,6 +234,7 @@ export class TelemetryPlugin implements Plugin<TelemetryPluginSetup, TelemetryPl
       telemetryCollectionManager,
       savedObjectsInternalClient$: this.savedObjectsInternalClient$,
       getSecurity: () => this.security,
+      getLicensing: () => this.licensing,
     });
 
     registerTelemetrySavedObject((opts) => savedObjects.registerType(opts));
@@ -263,7 +267,7 @@ export class TelemetryPlugin implements Plugin<TelemetryPluginSetup, TelemetryPl
 
   public start(
     core: CoreStart,
-    { telemetryCollectionManager, security }: TelemetryPluginsDepsStart
+    { telemetryCollectionManager, security, licensing }: TelemetryPluginsDepsStart
   ) {
     const { analytics, savedObjects } = core;
 
@@ -276,6 +280,7 @@ export class TelemetryPlugin implements Plugin<TelemetryPluginSetup, TelemetryPl
     this.savedObjectsInternalClient$.next(new SavedObjectsClient(savedObjectsInternalRepository));
 
     this.security = security;
+    this.licensing = licensing;
 
     if (this.shouldStartSnapshotTelemetryFetcher) {
       // Only generate and report the snapshot telemetry if we are on the appropriate node role
@@ -316,7 +321,10 @@ export class TelemetryPlugin implements Plugin<TelemetryPluginSetup, TelemetryPl
 
     const config = await firstValueFrom(this.config$);
     const allowChangingOptInStatus = config.allowChangingOptInStatus;
-    const configTelemetryOptIn = typeof config.optIn === 'undefined' ? null : config.optIn;
+    const configTelemetryOptIn = await resolveConfigTelemetryOptIn(
+      config.optIn,
+      () => this.licensing
+    );
     const currentKibanaVersion = this.currentKibanaVersion;
     const isOptedIn = getTelemetryOptIn({
       currentKibanaVersion,
@@ -335,7 +343,7 @@ export class TelemetryPlugin implements Plugin<TelemetryPluginSetup, TelemetryPl
     telemetryCollectionManager: TelemetryCollectionManagerPluginStart
   ) {
     // We start the fetcher having updated everything we need to use the config settings
-    this.fetcherTask.start(core, { telemetryCollectionManager });
+    this.fetcherTask.start(core, { telemetryCollectionManager, licensing: this.licensing });
   }
 
   private registerUsageCollectors(usageCollection: UsageCollectionSetup) {

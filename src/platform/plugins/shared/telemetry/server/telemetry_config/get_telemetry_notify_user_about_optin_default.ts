@@ -13,7 +13,7 @@ interface NotifyOpts {
   allowChangingOptInStatus: boolean;
   telemetrySavedObject: TelemetrySavedObject;
   telemetryOptedIn: boolean | null;
-  configTelemetryOptIn: boolean;
+  configTelemetryOptIn: boolean | null;
 }
 
 export function getNotifyUserAboutOptInDefault({
