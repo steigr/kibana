@@ -27,8 +27,11 @@ export class BundleRemoteUsedExportsPlugin {
     };
 
     const publicDirsPatterns = buildPublicDirsPatterns();
-    const KbnPluginMainEntryGlob = new Minimatch(publicDirsPatterns[0]);
-    const KbnPluginExtraFileEntryGlob = new Minimatch(publicDirsPatterns[1]);
+    // `dot: true` so `**` also matches dot-prefixed directories in the absolute module path
+    // (e.g. a repo checked out under `.claude/worktrees/`); otherwise no entry file matches
+    // and webpack tree-shakes every entry export, leaving empty bundles.
+    const KbnPluginMainEntryGlob = new Minimatch(publicDirsPatterns[0], { dot: true });
+    const KbnPluginExtraFileEntryGlob = new Minimatch(publicDirsPatterns[1], { dot: true });
 
     compiler.hooks.compilation.tap('MarkExportsAsUsedPlugin', (compilation) => {
       const moduleGraph = compilation.moduleGraph;
