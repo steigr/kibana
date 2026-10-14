@@ -31,6 +31,17 @@ const STATIC_FILE_EXT =
     .map((e) => `.${e}`);
 
 /**
+ * Keep `resolve` from walking into `node_modules` directories above the repo. `resolve` ignores
+ * package `exports`, so for exports-only packages (e.g. `uuid`) it skips the repo's copy and, when
+ * the repo is nested inside another checkout (e.g. a git worktree), picks up that checkout's
+ * stale version instead of falling back to Jest's default resolver.
+ *
+ * @type {import('resolve').SyncOpts['packageIterator']}
+ */
+const packageIteratorWithinRepo = (request, start, getPackageCandidates) =>
+  getPackageCandidates().filter((candidate) => candidate.startsWith(REPO_ROOT + Path.sep));
+
+/**
  * @param {string} str
  * @returns
  */
@@ -140,6 +151,7 @@ module.exports = (request, options) => {
     return resolve.sync(request, {
       basedir: options.basedir,
       extensions: options.extensions,
+      packageIterator: packageIteratorWithinRepo,
     });
   } catch (error) {
     if (error.code === 'MODULE_NOT_FOUND') {
